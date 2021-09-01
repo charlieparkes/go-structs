@@ -60,6 +60,17 @@ func Fields(s interface{}) []reflect.StructField {
 	return fields
 }
 
+// ToInterfaces returns a list of interfaces representing the values in struct i.
+// For database calls, use database.ToInterfaces instead.
+func ToInterfaces(i interface{}) []interface{} {
+	fromVal := Value(i)
+	out := []interface{}{}
+	for _, f := range Fields(i) {
+		out = append(out, fromVal.FieldByName(f.Name).Interface())
+	}
+	return out
+}
+
 func isPtr(i interface{}) error {
 	if v := reflect.ValueOf(i); v.Kind() != reflect.Ptr || !v.Elem().CanAddr() {
 		return errors.New("must be a pointer")
@@ -189,16 +200,20 @@ func getKind(val reflect.Value) reflect.Kind {
 
 // decodeBool supports bool, int, string
 func decodeBool(name string, from reflect.Value, to reflect.Value) error {
-	switch k := getKind(from); k {
+	f := from
+	if from.Kind() == reflect.Ptr {
+		f = reflect.Indirect(f)
+	}
+	switch k := getKind(f); k {
 	case reflect.Bool:
-		to.SetBool(from.Bool())
+		to.SetBool(f.Bool())
 	case reflect.Int:
-		to.SetBool(from.Int() != 0)
+		to.SetBool(f.Int() != 0)
 	case reflect.String:
-		b, err := strconv.ParseBool(from.String())
+		b, err := strconv.ParseBool(f.String())
 		if err == nil {
 			to.SetBool(b)
-		} else if from.String() == "" {
+		} else if f.String() == "" {
 			to.SetBool(false)
 		} else {
 			return fmt.Errorf("cannot parse '%s' as bool: %s", name, err)
@@ -211,19 +226,26 @@ func decodeBool(name string, from reflect.Value, to reflect.Value) error {
 
 // decodeString supports string, bool, int, float32
 func decodeString(name string, from reflect.Value, to reflect.Value) error {
-	switch k := getKind(from); k {
+	f := from
+	if from.Kind() == reflect.Ptr {
+		if from.IsNil() {
+			return nil
+		}
+		f = reflect.Indirect(f)
+	}
+	switch k := getKind(f); k {
 	case reflect.String:
-		to.SetString(from.String())
+		to.SetString(f.String())
 	case reflect.Bool:
-		if from.Bool() {
+		if f.Bool() {
 			to.SetString("1")
 		} else {
 			to.SetString("0")
 		}
 	case reflect.Int:
-		to.SetString(strconv.FormatInt(from.Int(), 10))
+		to.SetString(strconv.FormatInt(f.Int(), 10))
 	case reflect.Float32:
-		to.SetString(strconv.FormatFloat(from.Float(), 'f', -1, 64))
+		to.SetString(strconv.FormatFloat(f.Float(), 'f', -1, 64))
 	default:
 		return getDecodeErr(name, from, to)
 	}
@@ -232,17 +254,21 @@ func decodeString(name string, from reflect.Value, to reflect.Value) error {
 
 // decodeInt supports int, bool, string
 func decodeInt(name string, from reflect.Value, to reflect.Value) error {
-	switch k := getKind(from); k {
+	f := from
+	if from.Kind() == reflect.Ptr {
+		f = reflect.Indirect(f)
+	}
+	switch k := getKind(f); k {
 	case reflect.Int:
-		to.SetInt(from.Int())
+		to.SetInt(f.Int())
 	case reflect.Bool:
-		if from.Bool() {
+		if f.Bool() {
 			to.SetInt(1)
 		} else {
 			to.SetInt(0)
 		}
 	case reflect.String:
-		s := from.String()
+		s := f.String()
 		if s == "" {
 			s = "0"
 		}
@@ -260,19 +286,23 @@ func decodeInt(name string, from reflect.Value, to reflect.Value) error {
 
 // decodeFloat supports float32, int, bool, string
 func decodeFloat(name string, from reflect.Value, to reflect.Value) error {
-	switch k := getKind(from); k {
+	f := from
+	if from.Kind() == reflect.Ptr {
+		f = reflect.Indirect(f)
+	}
+	switch k := getKind(f); k {
 	case reflect.Float32:
-		to.SetFloat(from.Float())
+		to.SetFloat(f.Float())
 	case reflect.Int:
-		to.SetFloat(float64(from.Int()))
+		to.SetFloat(float64(f.Int()))
 	case reflect.Bool:
-		if from.Bool() {
+		if f.Bool() {
 			to.SetFloat(1)
 		} else {
 			to.SetFloat(0)
 		}
 	case reflect.String:
-		s := from.String()
+		s := f.String()
 		if s == "" {
 			s = "0"
 		}

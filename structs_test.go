@@ -1,7 +1,6 @@
 package structs
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -104,7 +103,6 @@ func TestFormatting(t *testing.T) {
 	output := map[string]string{}
 
 	assert.NoError(t, FillMap(input, output, "mytag", nil))
-	fmt.Println(output)
 	assert.Equal(t, "       abc", output["PadLeft"])
 	assert.Equal(t, "0000000abc", output["PadLeftCustom"])
 	assert.Equal(t, "abc       ", output["PadRight"])
