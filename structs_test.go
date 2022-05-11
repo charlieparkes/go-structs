@@ -78,7 +78,7 @@ func TestFillStruct(t *testing.T) {
 	}
 	output := MyStruct{}
 
-	assert.NoError(t, FillStruct(input, &output, "tag_name", nil))
+	assert.NoError(t, fillStruct(input, &output, "tag_name", nil))
 	assert.Equal(t, "abc", output.TestString)
 	assert.Equal(t, true, output.TestBool)
 	assert.Equal(t, true, *output.TestBoolPtr)

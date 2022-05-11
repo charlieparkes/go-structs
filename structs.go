@@ -20,8 +20,10 @@ func Tags(s interface{}, key string) map[string]map[string]string {
 				if !strings.ContainsRune(tagPart, '=') {
 					tags[field.Name][tagPart] = "true"
 				} else {
-					kv := strings.SplitN(tagPart, "=", 2)
-					tags[field.Name][kv[0]] = kv[1]
+					k, v, found := strings.Cut(tagPart, "=")
+					if found {
+						tags[field.Name][k] = v
+					}
 				}
 			}
 		}
@@ -119,7 +121,8 @@ func FillMap(from interface{}, to map[string]string, tagName string, decoder fun
 	return nil
 }
 
-func FillStruct(from map[string]string, to interface{}, tagName string, decoder func(reflect.Value, reflect.Value, map[string]string) (interface{}, error)) error {
+// XXX: Not exported because not fully tested - use mitchellh/mapstructure.
+func fillStruct(from map[string]string, to interface{}, tagName string, decoder func(reflect.Value, reflect.Value, map[string]string) (interface{}, error)) error {
 	if err := isPtr(to); err != nil {
 		return err
 	}
